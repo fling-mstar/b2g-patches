@@ -1,18 +1,27 @@
 diff --git a/gaia/build/settings.js b/gaia/build/settings.js
-index 58e5b4e..504e2c8 100644
+index 50ac96b..b0fbc98 100644
 --- a/gaia/build/settings.js
 +++ b/gaia/build/settings.js
-@@ -269,12 +269,13 @@ function execute(config) {
- 
-   if (config.NO_LOCK_SCREEN) {
-     settings['screen.timeout'] = 0;
+@@ -291,20 +291,22 @@ function execute(config) {
+   if (config.NO_LOCK_SCREEN === '1') {
      settings['lockscreen.enabled'] = false;
      settings['lockscreen.locked'] = false;
    }
-+  settings['screen.timeout'] = 0;
  
+   var screenTimeout = parseInt(config.SCREEN_TIMEOUT, 10);
+   if (screenTimeout >= 0) {
+     settings['screen.timeout'] = screenTimeout;
+   }
+ 
++  settings['screen.timeout'] = 0;
++
    setDefaultKeyboardLayouts(config.GAIA_DEFAULT_LOCALE, settings, config);
  
    var queue = utils.Q.defer();
    queue.resolve();
  
+   var result = queue.promise.then(function() {
+     setWallpaper(settings, config);
+   }).then(function() {
+     setMediatone(settings, config);
+   }).then(function() {
