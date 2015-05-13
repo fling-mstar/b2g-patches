@@ -1,0 +1,22 @@
+diff --git a/gecko/dom/bluetooth/bluedroid/BluetoothGattHALInterface.cpp b/gecko/dom/bluetooth/bluedroid/BluetoothGattHALInterface.cpp
+index 147ad83..a8bd615 100644
+--- a/gecko/dom/bluetooth/bluedroid/BluetoothGattHALInterface.cpp
++++ b/gecko/dom/bluetooth/bluedroid/BluetoothGattHALInterface.cpp
+@@ -1043,7 +1043,7 @@ BluetoothGattClientHALInterface::SetAdvData(
+    */
+ 
+   bt_status_t status;
+-#if ANDROID_VERSION >= 21
++#if ANDROID_VERSION >= 19
+   char manufacturerData[aManufacturerLen + 1];
+   char serviceData[aServiceDataLen + 1];
+   char serviceUUID[aServiceUUIDLen + 1];
+@@ -1059,7 +1059,7 @@ BluetoothGattClientHALInterface::SetAdvData(
+   } else {
+     status = BT_STATUS_PARM_INVALID;
+   }
+-#elif ANDROID_VERSION >= 19
++#elif ANDROID_VERSION >= 18
+   char value[aManufacturerLen + 1];
+ 
+   if (NS_SUCCEEDED(Convert(aManufacturerData, value))) {
