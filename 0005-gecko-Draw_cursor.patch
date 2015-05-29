@@ -1,0 +1,122 @@
+diff --git a/gecko/gfx/layers/composite/LayerManagerComposite.cpp b/gecko/gfx/layers/composite/LayerManagerComposite.cpp
+index 0e8744a..3c25b75 100644
+--- a/gecko/gfx/layers/composite/LayerManagerComposite.cpp
++++ b/gecko/gfx/layers/composite/LayerManagerComposite.cpp
+@@ -63,6 +63,7 @@
+ #endif
+ #include "GeckoProfiler.h"
+ #include "TextRenderer.h"               // for TextRenderer
++#include "../../widget/gonk/nsCursorPosition.h"  //for Cursor position
+ 
+ class gfxContext;
+ 
+@@ -521,8 +522,19 @@ LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
+     }
+   }
+ #endif
++  if(drawCursor){
++	  gfx::Rect sideRect(renderCurPosX, renderCurPosY, 20, 20);
++	  EffectChain effects;
++          effects.mPrimaryEffect = new EffectSolidColor(gfxUtils::GetColorForFrameNumber(sFrameCount));
++          mCompositor->DrawQuad(sideRect,
++                                sideRect,
++                                effects,
++                                1.0,
++                                gfx::Matrix4x4());
++	  drawCursor = false;
++  }
+ 
+-  if (drawFrameColorBars || drawFrameCounter) {
++  if (drawFrameColorBars || drawFrameCounter || drawCursor) {
+     // We intentionally overflow at 2^16.
+     sFrameCount++;
+   }
+diff --git a/gecko/widget/gonk/nsAppShell.cpp b/gecko/widget/gonk/nsAppShell.cpp
+index 200f6e2..4e51749 100644
+--- a/gecko/widget/gonk/nsAppShell.cpp
++++ b/gecko/widget/gonk/nsAppShell.cpp
+@@ -77,6 +77,9 @@
+ #include "mozilla/layers/CompositorParent.h"
+ #include "GeckoTouchDispatcher.h"
+ 
++#include "../../gfx/layers/ipc/CompositorParent.h"
++#include "nsCursorPosition.h"
++
+ #define LOG(args...)                                            \
+     __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
+ #ifdef VERBOSE_LOG_ENABLED
+@@ -101,6 +104,10 @@ static bool sDevInputAudioJack;
+ static int32_t sHeadphoneState;
+ static int32_t sMicrophoneState;
+ 
++float renderCurPosX = 0;
++float renderCurPosY = 0;
++bool drawCursor = false;
++
+ // Amount of time in MS before an input is considered expired.
+ static const uint64_t kInputExpirationThresholdMs = 1000;
+ static const char kKey_WAKE_LOCK_ID[] = "GeckoKeyEvent";
+@@ -391,11 +398,19 @@ updateHeadphoneSwitch()
+     NS_DispatchToMainThread(new SwitchEventRunnable(event));
+ }
+ 
++
++void CalculateCurPos(float curPosX, float curPosY)
++{
++   renderCurPosX = curPosX;
++   renderCurPosY = curPosY;
++}
++
+ class GeckoPointerController : public PointerControllerInterface {
+     float mX;
+     float mY;
+     int32_t mButtonState;
+     InputReaderConfiguration* mConfig;
++    layers:: CompositorParent* cp;
+ public:
+     GeckoPointerController(InputReaderConfiguration* config)
+         : mX(0)
+@@ -443,6 +458,12 @@ GeckoPointerController::move(float deltaX, float deltaY)
+ 
+     mX = clamped(mX + deltaX, minX, maxX);
+     mY = clamped(mY + deltaY, minY, maxY);
++
++    drawCursor = true;
++    CalculateCurPos(mX, mY);
++    cp = layers::CompositorParent::GetCompositor(2);
++    if(cp != NULL)
++         cp->ScheduleRenderOnCompositorThread();
+ }
+ 
+ void
+diff --git a/gecko/widget/gonk/nsCursorPosition.h b/gecko/widget/gonk/nsCursorPosition.h
+new file mode 100644
+index 0000000..d28ae7f
+--- /dev/null
++++ b/gecko/widget/gonk/nsCursorPosition.h
+@@ -0,0 +1,25 @@
++/*
++ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++
++#ifndef nsCursorPosition_h
++#define nsCursorPosition_h
++
++extern float renderCurPosX;
++extern float renderCurPosY;
++extern bool drawCursor;
++
++#endif /* nsCursorPosition_h */
